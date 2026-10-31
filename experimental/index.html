@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starry Night - Visual Discovery & Feed</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        starry: {
+                            50: '#f4f6fb',
+                            100: '#e2e8f5',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            900: '#111827',
+                            950: '#05070d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .masonry-grid {
+            position: relative;
+            width: 100%;
+            transition: height 0.2s ease-out;
+        }
+
+        .masonry-card {
+            position: absolute;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .card-overlay {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.7) 100%);
+        }
+
+        /* Hide scrollbar for category chips carousel */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .header-transition {
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Twinkle star animations */
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.25; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        .star {
+            position: absolute;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-[#f3f4f9] dark:bg-[#050711] text-[#1e1b4b] dark:text-gray-100 min-h-full flex flex-col font-sans transition-colors duration-300 relative overflow-x-hidden">
+
+    <!-- Fixed Starry Night Background Particles Container -->
+    <div id="starryBackground" class="fixed inset-0 pointer-events-none z-0 overflow-hidden"></div>
+
+    <!-- Top Header (Autohide after scrolling past threshold) -->
+    <div id="stickyHeaderWrapper" class="sticky top-0 z-40 header-transition z-30">
+        <header class="bg-white/85 dark:bg-[#0c101d]/85 backdrop-blur-md border-b border-[#e2e8f5] dark:border-slate-800/80 px-4 py-3 flex items-center justify-between shadow-xs">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-br from-indigo-600 via-indigo-500 to-violet-500 text-white p-2 rounded-full flex items-center justify-center shadow-md cursor-pointer" id="logoBtn">
+                    <i data-lucide="star" class="w-4 h-4" stroke-width="1.75"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base md:text-lg leading-tight tracking-tight flex items-center gap-1.5 cursor-pointer text-[#1e1b4b] dark:text-gray-100" id="brandTitle">
+                        Starry <span class="text-[#4f46e5] dark:text-indigo-400">Night</span>
+                        <span class="text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/50">Cosmic</span>
+                    </h1>
+                </div>
+            </div>
+
+            <div class="hidden md:flex items-center flex-1 max-w-md mx-6">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                        <i data-lucide="search" class="w-4 h-4" stroke-width="1.75"></i>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Search stars, constellations, art..."
+                        class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-900/80 dark:text-gray-100 border border-transparent rounded-full text-sm focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition">
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <!-- NSFW 3-State Filter -->
+                <div class="flex items-center bg-gray-100 dark:bg-slate-900/80 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 dark:border-slate-800">
+                    <span class="mr-1.5 text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                        <i data-lucide="shield" class="w-3.5 h-3.5" stroke-width="1.75"></i> NSFW:
+                    </span>
+                    <select id="nsfwStateSelect" class="bg-transparent font-semibold text-gray-800 dark:text-gray-200 focus:outline-none cursor-pointer">
+                        <option value="blur" class="dark:bg-slate-900">Blur</option>
+                        <option value="hide" class="dark:bg-slate-900">Hide</option>
+                        <option value="show" class="dark:bg-slate-900">Show</option>
+                    </select>
+                </div>
+
+                <!-- Dark Mode Toggle -->
+                <button id="darkModeToggle" class="p-2 rounded-full bg-gray-100 dark:bg-slate-900/80 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-800 transition cursor-pointer" title="Toggle Dark Mode">
+                    <i data-lucide="moon" class="w-4 h-4 dark:hidden" stroke-width="1.75"></i>
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block" stroke-width="1.75"></i>
+                </button>
+
+                <button id="connectBskyBtn" class="flex items-center space-x-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 px-3.5 py-1.5 rounded-full text-xs font-semibold transition border border-indigo-200 dark:border-indigo-800/60 cursor-pointer">
+                    <i data-lucide="radio" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                    <span id="connectBtnLabel">Connect</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Subheader with Feed Selector & Clean Carousel Category Chips -->
+        <nav class="bg-white/90 dark:bg-[#0c101d]/90 backdrop-blur-md border-b border-[#e2e8f5] dark:border-slate-800/80 px-4 py-2.5 shadow-2xs relative">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+                <div class="flex items-center space-x-2 w-full md:w-auto shrink-0">
+                    <span class="text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-1"><i data-lucide="layers" class="w-3.5 h-3.5" stroke-width="1.75"></i> Feed:</span>
+                    <select id="feedSelect" class="bg-gray-100 dark:bg-slate-900 dark:text-gray-200 border border-gray-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-800 focus:outline-none focus:border-indigo-500 w-full md:w-60 cursor-pointer">
+                        <option value="discover">🌟 Discover (Timeline)</option>
+                        <option value="trending">🔥 Trending</option>
+                        <option value="photography">📷 Photography</option>
+                    </select>
+                </div>
+
+                <!-- Carousel Category Chips -->
+                <div class="relative w-full md:max-w-3xl flex items-center">
+                    <div id="categoryChipsContainer" class="flex items-center space-x-2 overflow-x-auto no-scrollbar w-full py-1 px-1 scroll-smooth">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-[1920px] w-full mx-auto p-4 sm:p-6 relative z-10">
+        <div id="feedGrid" class="masonry-grid"></div>
+        <div id="scrollSentinel" class="w-full h-10 flex items-center justify-center my-6 hidden">
+            <div class="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
+            <div class="bg-gray-100 dark:bg-slate-900 p-4 rounded-full text-gray-400 mb-3 shadow-inner">
+                <i data-lucide="image-off" class="w-10 h-10" stroke-width="1.5"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-700 dark:text-gray-300">No cosmic posts found</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Try connecting your account or selecting another category.</p>
+        </div>
+    </main>
+
+    <!-- Floating Action Buttons (Refresh Feed & Scroll to Top) -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col space-y-3">
+        <button id="refreshFeedBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-xl transition transform hover:scale-110 flex items-center justify-center cursor-pointer border border-indigo-400/30" title="Reload & Fetch New Posts">
+            <i data-lucide="refresh-cw" class="w-5 h-5" stroke-width="1.75"></i>
+        </button>
+        <button id="scrollToTopBtn" class="bg-slate-900/90 dark:bg-slate-800/90 hover:bg-slate-800 text-white p-3 rounded-full shadow-xl transition transform hover:scale-110 flex items-center justify-center cursor-pointer border border-slate-700 hidden" title="Back to Top">
+            <i data-lucide="arrow-up" class="w-5 h-5" stroke-width="1.75"></i>
+        </button>
+    </div>
+
+    <!-- Card Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-2 sm:p-6 overflow-y-auto">
+        <div id="modalCardContainer" class="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 rounded-2xl max-w-5xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col md:flex-row relative border border-gray-200 dark:border-slate-800">
+            <button id="closeModalBtn" class="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition shadow cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5" stroke-width="1.75"></i>
+            </button>
+            
+            <!-- Image Container with adaptive backdrop -->
+            <div id="modalImageContainer" class="md:w-3/5 bg-slate-950 flex items-center justify-center relative overflow-hidden min-h-[320px] md:min-h-[600px]">
+                <div id="modalImageBackdrop" class="absolute inset-0 bg-cover bg-center filter blur-2xl opacity-40 scale-110"></div>
+                <img id="modalImage" src="" alt="Post Image" class="relative z-10 max-h-[85vh] max-w-full object-contain">
+                
+                <!-- Floating Author Pill on Image -->
+                <div class="absolute top-4 left-4 z-30 bg-black/60 backdrop-blur-md text-white px-3.5 py-2 rounded-full flex items-center space-x-2.5 shadow-lg border border-white/15">
+                    <img id="modalAuthorAvatar" src="" class="w-7 h-7 rounded-full object-cover border border-white/20">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="flex flex-col">
+                            <span id="modalAuthorName" class="font-bold text-xs text-white leading-tight">Author Name</span>
+                            <span id="modalAuthorHandle" class="text-[10px] text-gray-300 leading-tight">@handle</span>
+                        </div>
+                        <button id="modalFollowBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-semibold px-3 py-1 rounded-full transition shadow-xs cursor-pointer">Follow</button>
+                    </div>
+                </div>
+
+                <!-- Floating Action Toolbar on Image -->
+                <div class="absolute bottom-4 right-4 z-30 bg-black/65 backdrop-blur-md text-white p-1.5 rounded-full flex items-center space-x-1 shadow-xl border border-white/15">
+                    <button id="modalLikeBtn" class="p-2 hover:text-rose-400 transition rounded-full hover:bg-white/10 flex items-center space-x-1.5 cursor-pointer">
+                        <span id="modalLikeIconWrap"><i data-lucide="heart" class="w-4 h-4" stroke-width="1.75"></i></span>
+                        <span id="modalLikeCount" class="text-xs font-semibold">0</span>
+                    </button>
+                    <button id="modalRepostBtn" class="p-2 hover:text-emerald-400 transition rounded-full hover:bg-white/10 flex items-center space-x-1.5 cursor-pointer">
+                        <span id="modalRepostIconWrap"><i data-lucide="repeat" class="w-4 h-4" stroke-width="1.75"></i></span>
+                        <span id="modalRepostCount" class="text-xs font-semibold">0</span>
+                    </button>
+                    <button id="modalSaveBtn" class="p-2 hover:text-indigo-400 transition rounded-full hover:bg-white/10 cursor-pointer" title="Save">
+                        <i data-lucide="bookmark" class="w-4 h-4" stroke-width="1.75"></i>
+                    </button>
+                    <button id="modalShareBtn" class="p-2 hover:text-indigo-400 transition rounded-full hover:bg-white/10 cursor-pointer" title="Download">
+                        <i data-lucide="download" class="w-4 h-4" stroke-width="1.75"></i>
+                    </button>
+                </div>
+
+                <button id="modalPrevBtn" class="absolute left-3 z-30 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition shadow cursor-pointer hidden">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <button id="modalNextBtn" class="absolute right-3 z-30 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition shadow cursor-pointer hidden">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+                <div id="modalCarouselDots" class="absolute bottom-3 left-0 right-0 z-30 flex justify-center space-x-1.5 hidden"></div>
+                <div id="modalSensitiveOverlay" class="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-white text-center hidden z-20">
+                    <i data-lucide="shield-alert" class="w-12 h-12 text-rose-400 mb-3" stroke-width="1.75"></i>
+                    <h4 class="font-bold text-lg">Sensitive Content Warning</h4>
+                    <p class="text-xs text-gray-300 mt-1 mb-4">This image has been labeled as sensitive by the author or community.</p>
+                    <button id="modalRevealBtn" class="bg-white text-gray-900 font-semibold px-5 py-2 rounded-full text-sm hover:bg-gray-100 transition shadow cursor-pointer">
+                        Reveal Image
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right/Bottom Details Panel -->
+            <div id="modalDetailsPanel" class="md:w-2/5 flex flex-col h-full max-h-[85vh] md:max-h-[600px]">
+                <div class="p-4 flex-1 overflow-y-auto space-y-4">
+                    <div class="bg-indigo-50/60 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-indigo-100 dark:border-slate-700/80 shadow-2xs">
+                        <h5 class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Post Caption</h5>
+                        <p id="modalPostText" class="text-gray-800 dark:text-gray-200 text-sm leading-relaxed whitespace-pre-wrap"></p>
+                    </div>
+                    <div id="modalTagsContainer" class="flex flex-wrap gap-1.5 pt-1"></div>
+                    
+                    <!-- Comments & Activity Tabs -->
+                    <div class="border-t border-gray-100 dark:border-slate-800 pt-4 mt-2">
+                        <div class="flex items-center space-x-4 border-b border-gray-100 dark:border-slate-800 pb-2 mb-3 text-xs font-bold">
+                            <button id="tabCommentsBtn" class="text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 pb-1 transition cursor-pointer">Comments (<span id="modalCommentTabCount">0</span>)</button>
+                            <button id="tabActivityBtn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 pb-1 transition cursor-pointer">Activity & Reposts</button>
+                        </div>
+                        <div id="modalCommentsList" class="space-y-3"></div>
+                        <div id="modalActivityList" class="space-y-3 hidden"></div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50">
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="commentInput" placeholder="Add a comment..." class="flex-1 bg-white dark:bg-slate-800 dark:text-gray-100 border border-gray-200 dark:border-slate-700 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-indigo-500">
+                        <button id="sendCommentBtn" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition cursor-pointer"><i data-lucide="send" class="w-3.5 h-3.5" stroke-width="1.75"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect Account Modal -->
+    <div id="connectModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-gray-200 dark:border-slate-800">
+            <button id="closeConnectModal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer"><i data-lucide="x" class="w-5 h-5" stroke-width="1.75"></i></button>
+            <div class="text-center mb-6">
+                <div class="bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md">
+                    <i data-lucide="sparkles" class="w-6 h-6" stroke-width="1.75"></i>
+                </div>
+                <h3 class="font-bold text-xl text-gray-900 dark:text-gray-100">Connect Your Bluesky Account</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Load your network feed into Starry Night. <br><strong class="text-indigo-600 dark:text-indigo-400">Your own posts will be automatically hidden!</strong></p>
+            </div>
+            <form id="connectForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Bluesky Handle</label>
+                    <input type="text" id="bskyHandle" placeholder="e.g. alice.bsky.social" class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 dark:text-gray-100 border border-gray-300 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-indigo-500" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">App Password <span class="text-gray-400 font-normal">(Settings > App Passwords)</span></label>
+                    <input type="password" id="bskyAppPassword" placeholder="xxxx-xxxx-xxxx-xxxx" class="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 dark:text-gray-100 border border-gray-300 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-indigo-500" required>
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 bg-indigo-50 dark:bg-indigo-950/40 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900">
+                    🔒 Your app password is used securely in-browser to fetch your feed and is never stored on external servers.
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-sm cursor-pointer">
+                    Connect & Hide My Posts
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastNotification" class="fixed bottom-6 right-6 z-50 bg-slate-900/95 dark:bg-slate-800/95 text-white px-4 py-3 rounded-2xl shadow-2xl border border-indigo-500/30 backdrop-blur-md flex items-center space-x-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toastMessage" class="text-xs font-semibold">Successfully connected!</span>
+    </div>
+
+    <footer class="mt-auto bg-white/60 dark:bg-[#080c1a]/60 backdrop-blur-md border-t border-gray-200/80 dark:border-slate-800/80 py-6 text-center text-xs text-gray-500 dark:text-gray-400 relative z-10">
+        <p>Starry Night — A cosmic Pinterest-inspired Bluesky visual feed client. ✨</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
